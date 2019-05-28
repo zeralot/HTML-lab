@@ -1,0 +1,207 @@
+
+<!--Tham khảo thêm về canvas: http://www.w3schools.com/graphics/canvas_intro.asp -->
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8" />
+    <style>
+		canvas { 
+		background: 	#E6E6FA; 
+		display: block;
+		border: 2px solid #008080;
+		margin: 50px auto; }
+	</style>
+</head>
+<body>
+
+<canvas id="myCanvas" width="720" height="480"></canvas>
+
+<script>
+	<!--Khởi tạo các thông số -->
+
+    var canvas = document.getElementById("myCanvas");
+    var ctx = canvas.getContext("2d");
+    var ballRadius = 10;
+	
+	<!--Điểm xuất phát của quả bóng-->
+    var x = canvas.width/2;
+    var y = canvas.height-15;
+
+    var dx = 3;
+    var dy = -3;
+	
+    var paddleHeight = 10;
+    var paddleWidth = 75;
+    var paddleX = (canvas.width-paddleWidth)/2;
+	
+    var rightPressed = false;
+    var leftPressed = false;
+	
+    var brickRowCount = 8;
+    var brickColumnCount = 4;
+    var brickWidth = 74;
+    var brickHeight = 24;
+    var brickPadding = 10;
+    var brickOffsetTop = 40;
+    var brickOffsetLeft = 30;
+    
+	var score = 0;
+    var lives = 2;
+    
+	var bricks = [];
+    for(c=0; c<brickColumnCount; c++) {
+        bricks[c] = [];
+        for(r=0; r<brickRowCount; r++) {
+            bricks[c][r] = { x: 0, y: 0, status: 1 }; <!--Set trạng thái bằng 1-->
+        }
+    }
+	
+	<!--Điều khiển bằng bàn phím-->
+    document.addEventListener("keydown", keyDownHandler, false);
+    document.addEventListener("keyup", keyUpHandler, false);
+
+	    
+	function keyDownHandler(e) {
+        if(e.keyCode == 39) {
+            rightPressed = true;
+        }
+        else if(e.keyCode == 37) {
+            leftPressed = true;
+        }
+    }
+    
+	function keyUpHandler(e) {
+        if(e.keyCode == 39) {
+            rightPressed = false;
+        }
+        else if(e.keyCode == 37) {
+            leftPressed = false;
+        }
+    }
+    
+
+    function collisionDetection() {
+        for(c=0; c<brickColumnCount; c++) {
+            for(r=0; r<brickRowCount; r++) {
+                var b = bricks[c][r];
+                if(b.status == 1) {
+                    if(x > b.x && x < b.x+brickWidth && y > b.y && y < b.y+brickHeight) {
+                        dy = -dy;
+                        b.status = 0; <!--Gạch bị đánh trúng ko hiện lên nữa-->
+                        score++; 
+                        if(score == brickRowCount*brickColumnCount) {  <!--Thắng khi mà số điểm bằng số gạch ban đầu-->
+                            alert("CONGRATULATION!!!");
+                            document.location.reload(); <!--Reload trang-->
+                        }
+                    }
+                }
+            }
+        }
+    }
+	<!--Phần đồ hoạ-->
+	
+	function getRandomColor() { <!--Lấy random mã hex để có thể đc màu random-->
+    var letters = '0123456789ABCDEF';
+    var color = '#';
+    for (var i = 0; i < 6; i++ ) {
+        color += letters[Math.floor(Math.random() * 16)];
+    }
+    return color;
+	}
+	
+	
+    function drawBall() {
+        ctx.beginPath();
+        ctx.arc(x, y, ballRadius, 0, Math.PI*2);
+        ctx.fillStyle = getRandomColor(); <!--Màu sắc được random và thay đổi tốc độ cao nên thành nhấp nháy-->
+        ctx.fill();
+        ctx.closePath();
+    }
+	
+    function drawPaddle() { <!--Vẽ thanh trượt-->
+        ctx.beginPath();
+        ctx.rect(paddleX, canvas.height-paddleHeight, paddleWidth, paddleHeight);
+        ctx.fillStyle = "#663399";
+        ctx.fill();
+        ctx.closePath();
+    }
+		
+    function drawBricks() { <!--Vẽ gạch-->
+        for(c=0; c<brickColumnCount; c++) {
+            for(r=0; r<brickRowCount; r++) {
+                if(bricks[c][r].status == 1) { <!--Check status-->
+                    var brickX = (r*(brickWidth+brickPadding))+brickOffsetLeft;
+                    var brickY = (c*(brickHeight+brickPadding))+brickOffsetTop;
+                    bricks[c][r].x = brickX;
+                    bricks[c][r].y = brickY;
+                    ctx.beginPath();
+                    ctx.rect(brickX, brickY, brickWidth, brickHeight);
+                    ctx.fillStyle = "#008B8B";
+                    ctx.fill();
+                    ctx.closePath();
+                }
+            }
+        }
+    }
+	
+    function drawScore() { <!--Mục điểm-->
+        ctx.font = "18px comics sans ms";
+        ctx.fillStyle = "#663399";
+        ctx.fillText("Score: "+score, 15, 20);
+    }
+	
+    function drawLives() { <!--Mục mạng-->
+        ctx.font = "18px comics sans ms";
+        ctx.fillStyle = "#2E8B57";
+        ctx.fillText("Lives: "+lives, 650, 20);
+    }
+	<!---------------------------------------------------------------------------------------------------->
+    function draw() {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        drawBricks();
+        drawBall();
+        drawPaddle();
+        drawScore();
+        drawLives();
+		
+        collisionDetection();
+        if(x + dx > canvas.width-ballRadius || x + dx < ballRadius) {
+            dx = -dx;
+        }
+        if(y + dy < ballRadius) {
+            dy = -dy;
+        }
+        else if(y + dy > canvas.height-ballRadius) {
+            if(x > paddleX && x < paddleX + paddleWidth) {
+                dy = -dy;
+            }
+            else {
+                lives--;
+                if(!lives) {
+                    alert("GAME OVER\n Your Score =>  " +score+ "\nClick Ok to try again");
+                    document.location.reload();
+                }
+                else {
+                    x = canvas.width/2;
+                    y = canvas.height-30;
+                    dx = 3;
+                    dy = -3;
+                    paddleX = (canvas.width-paddleWidth)/2;
+                }
+            }
+        }
+        if(rightPressed && paddleX < canvas.width-paddleWidth) {
+            paddleX += 7;
+        }
+        else if(leftPressed && paddleX > 0) {
+            paddleX -= 7;
+        }
+        x += dx;
+        y += dy;
+        requestAnimationFrame(draw);
+    }
+    draw();
+</script>
+
+</body>
+</html>
